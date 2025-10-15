@@ -4,6 +4,17 @@ import path from "path";
 const root = path.join(process.cwd(), ".sandbox");
 if (!fs.existsSync(root)) fs.mkdirSync(root);
 
+function seed() {
+  const files = fs.readdirSync(root);
+  if (files.length === 0) {
+    fs.writeFileSync(
+      path.join(root, "hello.ts"),
+      `export const hi = (name: string) => "Hello, " + name;\n`
+    );
+  }
+}
+seed();
+
 export function base() { return root; }
 export function list(): string[] { return fs.readdirSync(root); }
 export function read(file: string): string {

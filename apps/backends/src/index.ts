@@ -81,7 +81,60 @@ app.post("/api/sandbox/write", (req, res) => {
     res.status(400).json({ error: String(e?.message ?? e) });
   }
 });
+app.get("/api/tools/shell/stream", (req, res) => {
+  const cmd = String(req.query.cmd || "").trim();
+  if (!ALLOWED.has(cmd)) {
+    res.status(400).json({ error: "command not allowed" });
+    return;
+  }
 
+  // SSE headers
+  res.set({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache, no-transform",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no", // nginx/etc
+  });
+  res.flushHeaders?.();
+
+  // keep-alive ping
+  const ping = setInterval(() => sseWrite(res, "ping", "💓"), 15000);
+
+  const [bin, ...args] = cmd.split(" ");
+  const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
+
+  child.stdout.on("data", (d) => {
+    sseWrite(res, "stdout", d.toString());
+  });
+
+  child.stderr.on("data", (d) => {
+    sseWrite(res, "stderr", d.toString());
+  });
+
+  child.on("close", (code) => {
+    sseWrite(res, "done", String(code ?? 0));
+    clearInterval(ping);
+    res.end();
+  });
+
+  child.on("error", (err) => {
+    sseWrite(res, "stderr", String(err));
+    sseWrite(res, "done", "-1");
+    clearInterval(ping);
+    res.end();
+  });
+
+  // client disconnect
+  req.on("close", () => {
+    try { child.kill("SIGTERM"); } catch {}
+    clearInterval(ping);
+  });
+});
+
+function sseWrite(res: express.Response, event: string, data: string) {
+  res.write(`event: ${event}\n`);
+  res.write(`data: ${data.replace(/\n/g, "\\n")}\n\n`);
+}
 
 
 
