@@ -4,24 +4,20 @@ import FilesSidebar from "@/components/FilesSidebar";
 import CodeEditor from "@/components/CodeEditor";
 
 type Tab = "editor" | "preview" | "terminal";
-
-// Base URL for backend
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 export default function Home() {
   const [health, setHealth] = useState<string>("checking…");
   const [tab, setTab] = useState<Tab>("editor");
 
-  // terminal
+
   const [cmd, setCmd] = useState<string>("node -v");
   const [cmdOut, setCmdOut] = useState<string>("");
 
-  // sandbox/editor
   const [openFile, setOpenFile] = useState<string>("");
   const [fileContent, setFileContent] = useState<string>("");
 
-  // gemini
-  const [prompt, setPrompt] = useState<string>(""); // start empty
+  const [prompt, setPrompt] = useState<string>(""); 
   const [answer, setAnswer] = useState<string>("");
   const [asking, setAsking] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -94,8 +90,8 @@ async function runCmdStream() {
     });
     const j = await r.json();
     setAnswer(j.ok ? `(${j.modelUsed})\n\n${j.text}` : `Error: ${j.error}\n${j.detail ?? ""}`);
-    setPrompt("");                // clear the input
-    inputRef.current?.focus();    // focus back for fast next prompt
+    setPrompt("");          
+    inputRef.current?.focus();    
     setAsking(false);
   }
 
@@ -106,13 +102,12 @@ async function runCmdStream() {
 
   return (
     <main className="p-6 grid gap-6">
-      {/* Topbar */}
+    
       <header className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Doable</h1>
         <div className="text-xs text-gray-500">sandboxed editor · gemini tools</div>
       </header>
 
-      {/* Tabs */}
       <div className="flex gap-2">
         {(["editor","preview","terminal"] as Tab[]).map(t => (
           <button
@@ -127,7 +122,6 @@ async function runCmdStream() {
         ))}
       </div>
 
-      {/* Panels */}
       {tab === "editor" && (
         <section className="grid gap-3">
           <div className="grid grid-cols-[16rem,1fr] gap-4">
@@ -199,7 +193,6 @@ async function runCmdStream() {
         </section>
       )}
 
-      {/* Ask Gemini (polished) */}
       <section className="grid gap-2">
         <h2 className="text-lg font-semibold">Ask Gemini</h2>
         <div className="rounded-2xl border border-gray-200 bg-white p-3 grid gap-2">

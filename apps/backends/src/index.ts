@@ -14,7 +14,6 @@ app.get("/api/health", (_req, res) =>
   res.json({ ok: true, service: "backend", ts: new Date().toISOString() })
 );
 
-// ----- LLM
 const ChatBody = z.object({
   prompt: z.string().min(1),
   temperature: z.number().min(0).max(2).optional(),
@@ -32,7 +31,6 @@ app.post("/api/llm/chat", async (req, res) => {
   }
 });
 
-// ----- Shell (whitelisted)
 const ShellBody = z.object({ cmd: z.string().min(1) });
 const ALLOWED = new Set(["node -v", "npm -v", "pnpm -v", "echo hello"]);
 
@@ -52,14 +50,10 @@ app.post("/api/tools/shell", async (req, res) => {
   }
 });
 
-
-
-// list
 app.get("/api/sandbox/list", (_req, res) => {
   res.json({ files: sb.list() });
 });
 
-// read
 app.post("/api/sandbox/read", (req, res) => {
   const Body = z.object({ file: z.string().min(1) });
   try {
@@ -70,7 +64,6 @@ app.post("/api/sandbox/read", (req, res) => {
   }
 });
 
-// write (keep as user-op for now; later: LLM-only auth)
 app.post("/api/sandbox/write", (req, res) => {
   const Body = z.object({ file: z.string().min(1), content: z.string() });
   try {
@@ -88,16 +81,13 @@ app.get("/api/tools/shell/stream", (req, res) => {
     return;
   }
 
-  // SSE headers
   res.set({
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache, no-transform",
     Connection: "keep-alive",
-    "X-Accel-Buffering": "no", // nginx/etc
+    "X-Accel-Buffering": "no", 
   });
   res.flushHeaders?.();
-
-  // keep-alive ping
   const ping = setInterval(() => sseWrite(res, "ping", "💓"), 15000);
 
   const [bin, ...args] = cmd.split(" ");
@@ -124,7 +114,6 @@ app.get("/api/tools/shell/stream", (req, res) => {
     res.end();
   });
 
-  // client disconnect
   req.on("close", () => {
     try { child.kill("SIGTERM"); } catch {}
     clearInterval(ping);
@@ -135,9 +124,5 @@ function sseWrite(res: express.Response, event: string, data: string) {
   res.write(`event: ${event}\n`);
   res.write(`data: ${data.replace(/\n/g, "\\n")}\n\n`);
 }
-
-
-
-
 const PORT = Number(env.PORT ?? 4000);
 app.listen(PORT, () => console.log(`backend listening on http://localhost:${PORT}`));
