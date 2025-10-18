@@ -5,15 +5,12 @@ import { chatWithRetries } from "./llm";
 import { env } from "./env";
 import { spawn } from "node:child_process";
 import * as sb from "./sandbox";
-
 const app = express();
 app.use(express.json());
 app.use(cors({ origin: ["http://localhost:3000"], credentials: true }));
-
 app.get("/api/health", (_req, res) =>
   res.json({ ok: true, service: "backend", ts: new Date().toISOString() })
 );
-
 const ChatBody = z.object({
   prompt: z.string().min(1),
   temperature: z.number().min(0).max(2).optional(),
@@ -30,7 +27,6 @@ app.post("/api/llm/chat", async (req, res) => {
     res.status(503).json({ ok: false, error: "LLM temporarily unavailable", detail: String(err?.message ?? err) });
   }
 });
-
 const ShellBody = z.object({ cmd: z.string().min(1) });
 const ALLOWED = new Set(["node -v", "npm -v", "pnpm -v", "echo hello"]);
 
@@ -49,11 +45,9 @@ app.post("/api/tools/shell", async (req, res) => {
     res.status(400).json({ error: String(e?.message ?? e) });
   }
 });
-
 app.get("/api/sandbox/list", (_req, res) => {
   res.json({ files: sb.list() });
 });
-
 app.post("/api/sandbox/read", (req, res) => {
   const Body = z.object({ file: z.string().min(1) });
   try {
@@ -80,16 +74,15 @@ app.get("/api/tools/shell/stream", (req, res) => {
     res.status(400).json({ error: "command not allowed" });
     return;
   }
-
   res.set({
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache, no-transform",
     Connection: "keep-alive",
     "X-Accel-Buffering": "no", 
   });
+  
   res.flushHeaders?.();
   const ping = setInterval(() => sseWrite(res, "ping", "💓"), 15000);
-
   const [bin, ...args] = cmd.split(" ");
   const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
 
@@ -106,20 +99,17 @@ app.get("/api/tools/shell/stream", (req, res) => {
     clearInterval(ping);
     res.end();
   });
-
   child.on("error", (err) => {
     sseWrite(res, "stderr", String(err));
     sseWrite(res, "done", "-1");
     clearInterval(ping);
     res.end();
   });
-
   req.on("close", () => {
     try { child.kill("SIGTERM"); } catch {}
     clearInterval(ping);
   });
 });
-
 function sseWrite(res: express.Response, event: string, data: string) {
   res.write(`event: ${event}\n`);
   res.write(`data: ${data.replace(/\n/g, "\\n")}\n\n`);
