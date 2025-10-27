@@ -10,63 +10,62 @@ export default function Home() {
   const [health, setHealth] = useState<string>("checking…");
   const [tab, setTab] = useState<Tab>("editor");
 
-
+  // terminal
   const [cmd, setCmd] = useState<string>("node -v");
   const [cmdOut, setCmdOut] = useState<string>("");
+  const outRef = useRef<HTMLPreElement | null>(null);
+  const [streaming, setStreaming] = useState(false);
 
+  // editor / sandbox
   const [openFile, setOpenFile] = useState<string>("");
   const [fileContent, setFileContent] = useState<string>("");
 
-  const [prompt, setPrompt] = useState<string>(""); 
+  // gemini
+  const [prompt, setPrompt] = useState<string>("");
   const [answer, setAnswer] = useState<string>("");
   const [asking, setAsking] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
-
-const outRef = useRef<HTMLPreElement | null>(null);
-const [streaming, setStreaming] = useState(false);
-
-
-
+  const ansRef = useRef<HTMLPreElement | null>(null);
 
   useEffect(() => {
     fetch(`${API}/api/health`)
-      .then(r => r.json())
-      .then(j => setHealth(JSON.stringify(j, null, 2)))
-      .catch(err => setHealth(String(err)));
+      .then((r) => r.json())
+      .then((j) => setHealth(JSON.stringify(j, null, 2)))
+      .catch((err) => setHealth(String(err)));
   }, []);
 
-async function runCmdStream() {
-  if (!cmd.trim()) return;
+  // --- terminal (SSE)
+  async function runCmdStream() {
+    if (!cmd.trim()) return;
+    setStreaming(true);
+    setCmdOut("");
+    const es = new EventSource(`${API}/api/tools/shell/stream?cmd=${encodeURIComponent(cmd)}`);
 
-  setStreaming(true);
-  setCmdOut("");
-  const url = `${API}/api/tools/shell/stream?cmd=${encodeURIComponent(cmd)}`;
-  const es = new EventSource(url);
+    es.addEventListener("stdout", (e) => {
+      setCmdOut((prev) => (prev ? prev + e.data.replaceAll("\\n", "\n") : e.data.replaceAll("\\n", "\n")));
+      outRef.current?.scrollTo({ top: outRef.current.scrollHeight, behavior: "smooth" });
+    });
+    es.addEventListener("stderr", (e) => {
+      setCmdOut((prev) => (prev ? prev + e.data.replaceAll("\\n", "\n") : e.data.replaceAll("\\n", "\n")));
+      outRef.current?.scrollTo({ top: outRef.current.scrollHeight, behavior: "smooth" });
+    });
+    es.addEventListener("done", (e) => {
+      setCmdOut((prev) => `${prev}\n\nexit code: ${e.data}`);
+      es.close();
+      setStreaming(false);
+    });
+    es.onerror = () => {
+      setCmdOut((prev) => prev + "\n\n[stream error]");
+      es.close();
+      setStreaming(false);
+    };
+  }
+  function runCmd(event: MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    void runCmdStream();
+  }
 
-  es.addEventListener("stdout", (e) => {
-    setCmdOut(prev => (prev ? prev + e.data.replaceAll("\\n", "\n") : e.data.replaceAll("\\n", "\n")));
-    outRef.current?.scrollTo({ top: outRef.current.scrollHeight, behavior: "smooth" });
-  });
-
-  es.addEventListener("stderr", (e) => {
-    setCmdOut(prev => (prev ? prev + e.data.replaceAll("\\n", "\n") : e.data.replaceAll("\\n", "\n")));
-    outRef.current?.scrollTo({ top: outRef.current.scrollHeight, behavior: "smooth" });
-  });
-
-  es.addEventListener("done", (e) => {
-    setCmdOut(prev => `${prev}\n\nexit code: ${e.data}`);
-    es.close();
-    setStreaming(false);
-  });
-
-  es.onerror = () => {
-    setCmdOut(prev => prev + "\n\n[stream error]");
-    es.close();
-    setStreaming(false);
-  };
-}
-
-
+  // --- sandbox
   async function openSandboxFile(file: string) {
     setOpenFile(file);
     setFileContent("…loading");
@@ -79,42 +78,49 @@ async function runCmdStream() {
     setFileContent(j.content ?? "");
   }
 
-  async function askLLM() {
-    if (!prompt.trim()) return;
+  // --- gemini (SSE + auto-continue)
+  async function askLLMStream() {
+    if (!prompt.trim() || asking) return;
     setAsking(true);
-    setAnswer("…thinking");
-    const r = await fetch(`${API}/api/llm/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
-    });
-    const j = await r.json();
-    setAnswer(j.ok ? `(${j.modelUsed})\n\n${j.text}` : `Error: ${j.error}\n${j.detail ?? ""}`);
-    setPrompt("");          
-    inputRef.current?.focus();    
-    setAsking(false);
-  }
+    setAnswer("");
+    const url =
+      `${API}/api/llm/chat/stream?` +
+      new URLSearchParams({ prompt, temperature: "0.6", maxOutputTokens: "2048" }).toString();
 
-  function runCmd(event: MouseEvent<HTMLButtonElement>): void {
-    event.preventDefault();
-    void runCmdStream();
+    const es = new EventSource(url);
+    es.addEventListener("token", (e) => {
+      setAnswer((prev) => prev + e.data.replaceAll("\\n", "\n"));
+      ansRef.current?.scrollTo({ top: ansRef.current.scrollHeight });
+    });
+    es.addEventListener("done", () => {
+      es.close();
+      setAsking(false);
+    });
+    es.addEventListener("error", () => {
+      setAnswer((prev) => prev + "\n\n[stream error]");
+      es.close();
+      setAsking(false);
+    });
+
+    setPrompt(""); // clear immediately
+    inputRef.current?.focus();
   }
 
   return (
     <main className="p-6 grid gap-6">
-    
       <header className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Doable</h1>
         <div className="text-xs text-gray-500">sandboxed editor · gemini tools</div>
       </header>
 
+      {/* Tabs */}
       <div className="flex gap-2">
-        {(["editor","preview","terminal"] as Tab[]).map(t => (
+        {(["editor", "preview", "terminal"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`px-3 py-1.5 rounded-xl border text-sm capitalize transition ${
-              tab===t ? "bg-gray-900 text-white" : "bg-white border-gray-200 hover:bg-gray-50"
+              tab === t ? "bg-gray-900 text-white" : "bg-white border-gray-200 hover:bg-gray-50"
             }`}
           >
             {t}
@@ -122,6 +128,7 @@ async function runCmdStream() {
         ))}
       </div>
 
+      {/* Editor */}
       {tab === "editor" && (
         <section className="grid gap-3">
           <div className="grid grid-cols-[16rem,1fr] gap-4">
@@ -142,7 +149,8 @@ async function runCmdStream() {
                         content: `# Doable Sandbox\n\nCreated at ${new Date().toISOString()}\n`,
                       }),
                     });
-                    setOpenFile(""); setFileContent("");
+                    setOpenFile("");
+                    setFileContent("");
                   }}
                 >
                   + Seed file
@@ -156,6 +164,7 @@ async function runCmdStream() {
         </section>
       )}
 
+      {/* Preview */}
       {tab === "preview" && (
         <section className="grid gap-3">
           <h2 className="text-lg font-semibold">Preview</h2>
@@ -165,6 +174,7 @@ async function runCmdStream() {
         </section>
       )}
 
+      {/* Terminal */}
       {tab === "terminal" && (
         <section className="grid gap-3">
           <h2 className="text-lg font-semibold">Terminal</h2>
@@ -175,24 +185,34 @@ async function runCmdStream() {
           <div className="flex gap-2">
             <input
               value={cmd}
-              onChange={e => setCmd(e.target.value)}
+              onChange={(e) => setCmd(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !streaming) runCmdStream();
+              }}
               className="flex-1 px-3 py-2 rounded-xl border border-gray-200 font-mono text-sm"
               placeholder='e.g. "node -v"'
             />
             <button
               onClick={runCmd}
-              className="px-4 py-2 rounded-xl bg-gray-900 text-white"
+              disabled={streaming}
+              className={`px-4 py-2 rounded-xl text-white ${
+                streaming ? "bg-gray-400" : "bg-gray-900 hover:opacity-90"
+              }`}
             >
-              Run
+              {streaming ? "Running…" : "Run"}
             </button>
           </div>
 
-          <pre className="m-0 p-3 rounded-2xl border border-gray-200 bg-black text-gray-100 min-h-36 overflow-auto">
+          <pre
+            ref={outRef}
+            className="m-0 p-3 rounded-2xl border border-gray-200 bg-black text-gray-100 min-h-36 max-h-[420px] overflow-auto"
+          >
 {cmdOut}
           </pre>
         </section>
       )}
 
+      {/* Ask Gemini (streaming) */}
       <section className="grid gap-2">
         <h2 className="text-lg font-semibold">Ask Gemini</h2>
         <div className="rounded-2xl border border-gray-200 bg-white p-3 grid gap-2">
@@ -200,22 +220,29 @@ async function runCmdStream() {
             <input
               ref={inputRef}
               value={prompt}
-              onChange={e => setPrompt(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") askLLM(); }}
-              placeholder=""                           // empty placeholder
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") askLLMStream();
+              }}
+              placeholder=""
               className="flex-1 px-3 py-2 rounded-xl border border-gray-200"
               autoFocus
             />
             <button
-              onClick={askLLM}
+              onClick={askLLMStream}
               disabled={asking}
-              className={`px-4 py-2 rounded-xl text-white ${asking ? "bg-gray-400" : "bg-gray-900 hover:opacity-90"}`}
+              className={`px-4 py-2 rounded-xl text-white ${
+                asking ? "bg-gray-400" : "bg-gray-900 hover:opacity-90"
+              }`}
             >
               {asking ? "Thinking…" : "Ask"}
             </button>
           </div>
 
-          <pre className="m-0 p-3 rounded-xl border border-gray-100 bg-gray-50 min-h-24 overflow-auto">
+          <pre
+            ref={ansRef}
+            className="m-0 p-3 rounded-xl border border-gray-100 bg-gray-50 min-h-24 max-h-[420px] overflow-auto"
+          >
 {answer}
           </pre>
         </div>

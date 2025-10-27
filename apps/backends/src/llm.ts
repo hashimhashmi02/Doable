@@ -3,58 +3,58 @@ import { env, MODELS } from "./env";
 
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 
-type GenCfg = {
-  temperature?: number;
-  maxOutputTokens?: number;
-};
+export type StreamChunk = { type: "text" | "meta"; data: string };
 
-function sleep(ms: number) {
-  return new Promise(res => setTimeout(res, ms));
-}
+export async function* streamWithContinuations(
+  userPrompt: string,
+  cfg: { temperature?: number; maxOutputTokens?: number } = {}
+): AsyncGenerator<StreamChunk> {
+  const generationConfig = {
+    temperature: cfg.temperature ?? 0.6,
+    maxOutputTokens: cfg.maxOutputTokens ?? 2048,
+  };
 
-function backoffDelay(attempt: number) {
-  const base = 400 * Math.max(1, 2 ** attempt);
-  const jitter = Math.floor(Math.random() * 200);
-  return base + jitter;
-}
-
-export async function chatWithRetries(
-  prompt: string,
-  opts: { tries?: number; cfg?: GenCfg } = {}
-): Promise<{ text: string; modelUsed: string }> {
-  const tries = opts.tries ?? 4;
-  const cfg = opts.cfg ?? { temperature: 0.6, maxOutputTokens: 2048 };
-
-  let lastErr: any;
+  let prompt = userPrompt;
+  let modelTriedErr: any;
 
   for (const modelName of MODELS) {
-    const model = genAI.getGenerativeModel({ model: modelName });
-    for (let i = 0; i < tries; i++) {
-      try {
-        const res = await model.generateContent({
+    try {
+
+      let lastTail = "";
+      
+      while (true) {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContentStream({
           contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: cfg,
+          generationConfig,
         });
-        const text = res.response.text() ?? "";
-        if (!text) throw new Error("Empty response");
-        return { text, modelUsed: modelName };
-      } catch (err: any) {
-        lastErr = err;
-        const msg = String(err?.message ?? err);
-        const isOverload =
-          msg.includes("503") ||
-          msg.toLowerCase().includes("unavailable") ||
-          msg.includes("429") ||
-          msg.toLowerCase().includes("rate");
-        if (isOverload && i < tries - 1) {
-          await sleep(backoffDelay(i));
+
+        let finishReason = "";
+        for await (const chunk of result.stream) {
+          const text = chunk.text();
+          if (text) {
+        
+            const out = lastTail && text.startsWith(lastTail) ? text.slice(lastTail.length) : text;
+            if (out) yield { type: "text", data: out };
+            lastTail = out.slice(-100);
+          }
+          const cand = chunk.candidates?.[0];
+          if (cand?.finishReason) finishReason = cand.finishReason;
+        }
+
+        yield { type: "meta", data: JSON.stringify({ modelUsed: modelName, finishReason }) };
+        if (finishReason === "MAX_TOKENS") {
+          prompt = `Continue exactly where you left off. Do not repeat. Last 100 chars for context:\n${lastTail}`;
           continue;
         }
-        break;
+        break; 
       }
+      return;
+    } catch (err) {
+      modelTriedErr = err;
+    
+      continue;
     }
   }
-  throw new Error(
-    `LLM unavailable after retries/fallbacks. Last error: ${String(lastErr?.message ?? lastErr)}`
-  );
+  throw new Error(`All models failed. Last error: ${String(modelTriedErr?.message ?? modelTriedErr)}`);
 }
