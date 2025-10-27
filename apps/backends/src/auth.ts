@@ -1,15 +1,22 @@
-import jwt from "jsonwebtoken";
+import * as jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { Request, Response, NextFunction } from "express";
 import { env } from "./env";
 
 export function signToken(userId: string) {
-  return jwt.sign({ uid: userId }, env.JWT_SECRET ?? "dev", { expiresIn: "7d" });
+  const secret = (env as any).JWT_SECRET ?? process.env.JWT_SECRET;
+  if (!secret) throw new Error("JWT secret is not configured");
+  return jwt.sign({ uid: userId }, secret, { expiresIn: "7d" });
 }
 
 export function verifyToken(token?: string): { uid: string } | null {
-  try { return token ? (jwt.verify(token, env.JWT_SECRET ?? "dev") as any) : null; }
-  catch { return null; }
+  const secret = (env as any).JWT_SECRET ?? process.env.JWT_SECRET;
+  if (!secret) return null;
+  try {
+    return token ? (jwt.verify(token, secret) as any) : null;
+  } catch {
+    return null;
+  }
 }
 
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {

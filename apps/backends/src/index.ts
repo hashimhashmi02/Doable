@@ -5,6 +5,8 @@ import { chatWithRetries, streamWithContinuations } from "./llm";
 import { env } from "./env";
 import { spawn } from "node:child_process";
 import * as sb from "./sandbox";
+import { prisma } from "./prisma";
+import { authMiddleware, hash, compare, signToken } from "./auth";
 
 const app = express();
 app.use(express.json());
@@ -41,6 +43,89 @@ app.post("/api/llm/chat", async (req, res) => {
       .json({ ok: false, error: "LLM temporarily unavailable", detail: String(err?.message ?? err) });
   }
 });
+
+app.post("/signup", async (req, res) => {
+  const Body = z.object({ username: z.string().min(3), password: z.string().min(6) });
+  try {
+    const { username, password } = Body.parse(req.body);
+    const exists = await prisma.user.findUnique({ where: { username } });
+    if (exists) return res.status(400).json({ error: "username taken" });
+    const user = await prisma.user.create({ data: { username, password: await hash(password) } });
+    res.json({ token: signToken(user.id), user: { id: user.id, username: user.username } });
+  } catch (e: any) { res.status(400).json({ error: String(e?.message ?? e) }); }
+});
+
+app.post("/signin", async (req, res) => {
+  const Body = z.object({ username: z.string(), password: z.string() });
+  try {
+    const { username, password } = Body.parse(req.body);
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user || !(await compare(password, user.password))) return res.status(401).json({ error: "invalid creds" });
+    res.json({ token: signToken(user.id), user: { id: user.id, username: user.username } });
+  } catch (e: any) { res.status(400).json({ error: String(e?.message ?? e) }); }
+});
+
+// --- projects (auth required)
+app.post("/project", authMiddleware, async (req, res) => {
+  const Body = z.object({ title: z.string().min(1), initialPrompt: z.string().default("") });
+  try {
+    const { title, initialPrompt } = Body.parse(req.body);
+    const project = await prisma.project.create({
+      data: { title, initialPrompt, userId: (req as any).uid }
+    });
+    res.json({ project });
+  } catch (e: any) { res.status(400).json({ error: String(e?.message ?? e) }); }
+});
+
+app.get("/projects", authMiddleware, async (req, res) => {
+  const projects = await prisma.project.findMany({ where: { userId: (req as any).uid }, orderBy: { updatedAt: "desc" } });
+  res.json({ projects });
+});
+
+app.get("/project/:projectId", authMiddleware, async (req, res) => {
+  const { projectId } = req.params;
+  const project = await prisma.project.findFirst({ where: { id: projectId, userId: (req as any).uid } });
+  if (!project) return res.status(404).json({ error: "not found" });
+  const history = await prisma.conversationHistory.findMany({
+    where: { projectId }, orderBy: { createdAt: "asc" }
+  });
+  res.json({ project, history });
+});
+
+app.post("/project/conversation/:projectId", authMiddleware, async (req, res) => {
+  const Params = z.object({ projectId: z.string() });
+  const Body = z.object({
+    type: z.enum(["TOOL_CALL","TEXT_MESSAGE"]),
+    from: z.enum(["USER","ASSISTANT"]),
+    contents: z.string(),
+    hidden: z.boolean().optional(),
+    toolCall: z.enum(["READ_FILE","WRITE_FILE","DELETE_FILE","UPDATE_FILE"]).optional()
+  });
+  try {
+    const { projectId } = Params.parse(req.params);
+    const { type, from, contents, hidden, toolCall } = Body.parse(req.body);
+    // basic ownership check
+    const own = await prisma.project.findFirst({ where: { id: projectId, userId: (req as any).uid } });
+    if (!own) return res.status(404).json({ error: "project not found" });
+    const rec = await prisma.conversationHistory.create({
+      data: { projectId, type, from, contents, hidden: hidden ?? false, toolCall }
+    });
+    res.json({ ok: true, item: rec });
+  } catch (e: any) { res.status(400).json({ error: String(e?.message ?? e) }); }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ---- LLM (SSE stream + auto-continue)
 app.get("/api/llm/chat/stream", async (req, res) => {
@@ -133,7 +218,10 @@ app.get("/api/tools/shell/stream", (req, res) => {
     clearInterval(ping);
   });
 });
-
+app.get("/api/dbcheck", async (_req, res) => {
+  const users = await prisma.user.count();
+  res.json({ ok: true, users });
+});
 
 app.get("/api/sandbox/list", (_req, res) => res.json({ files: sb.list() }));
 app.post("/api/sandbox/read", (req, res) => {

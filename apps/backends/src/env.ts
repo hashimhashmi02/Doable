@@ -11,7 +11,11 @@ export const env = EnvSchema.parse({
   GEMINI_MODEL: process.env.GEMINI_MODEL,
   GEMINI_FALLBACK_MODELS: process.env.GEMINI_FALLBACK_MODELS,
   PORT: process.env.PORT,
+  JWT_SECRET: z.string().min(10).default("dev_dev_dev_change_me"),
+  DATABASE_URL: z.string().optional(),
 });
+
+
 export const MODELS: string[] = [
   env.GEMINI_MODEL,
   ...(env.GEMINI_FALLBACK_MODELS?.split(",").map(s => s.trim()).filter(Boolean) ?? []),
