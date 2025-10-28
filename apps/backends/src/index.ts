@@ -7,6 +7,8 @@ import { spawn } from "node:child_process";
 import * as sb from "./sandbox";
 import { prisma } from "./prisma";
 import { authMiddleware, hash, compare, signToken } from "./auth";
+import authRoutes from "./routes.auth";
+import projectRoutes from "./routes.projects";
 
 const app = express();
 app.use(express.json());
@@ -24,6 +26,8 @@ app.get("/api/health", (_req, res) =>
   res.json({ ok: true, service: "backend", ts: new Date().toISOString() })
 );
 
+app.use("/api", authRoutes);
+app.use("/api", projectRoutes);
 
 const ChatBody = z.object({
   prompt: z.string().min(1),
@@ -65,7 +69,6 @@ app.post("/signin", async (req, res) => {
   } catch (e: any) { res.status(400).json({ error: String(e?.message ?? e) }); }
 });
 
-// --- projects (auth required)
 app.post("/project", authMiddleware, async (req, res) => {
   const Body = z.object({ title: z.string().min(1), initialPrompt: z.string().default("") });
   try {
@@ -114,20 +117,6 @@ app.post("/project/conversation/:projectId", authMiddleware, async (req, res) =>
   } catch (e: any) { res.status(400).json({ error: String(e?.message ?? e) }); }
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ---- LLM (SSE stream + auto-continue)
 app.get("/api/llm/chat/stream", async (req, res) => {
   try {
     const schema = z.object({

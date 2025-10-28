@@ -3,11 +3,21 @@
 @tailwind utilities;
 
 :root {
-  --bg: 255 255 255;
-  --ink: 17 24 39;
-  --muted: 243 244 246;
-  --border: 229 231 235;
+  --bg: 10 15 26;
+  --ink: 255 255 255;
+  --muted: 31 41 55;
+  --border: 255 255 255 / 0.1;
 }
 
 html, body, #__next { height: 100%; }
-body { background: rgb(var(--bg)); color: rgb(var(--ink)); }
+body { 
+  background: linear-gradient(to bottom, rgb(10, 15, 26), black);
+  color: rgb(var(--ink)); 
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

@@ -7,23 +7,22 @@ type Tab = "editor" | "preview" | "terminal";
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 export default function Home() {
-  // health
+
   const [health, setHealth] = useState("checking…");
 
-  // tabs
+ 
   const [tab, setTab] = useState<Tab>("editor");
 
-  // terminal
+
   const [cmd, setCmd] = useState("node -v");
   const [cmdOut, setCmdOut] = useState("");
   const termOutRef = useRef<HTMLPreElement | null>(null);
   const [termStreaming, setTermStreaming] = useState(false);
 
-  // sandbox
   const [openFile, setOpenFile] = useState("");
   const [fileContent, setFileContent] = useState("");
 
-  // gemini
+
   const [prompt, setPrompt] = useState("");
   const [answer, setAnswer] = useState("");
   const [asking, setAsking] = useState(false);
@@ -37,7 +36,7 @@ export default function Home() {
       .catch((err) => setHealth(String(err)));
   }, []);
 
-  // ---------- terminal (SSE)
+
   async function runCmdStream() {
     if (!cmd.trim()) return;
     setTermStreaming(true);
@@ -66,7 +65,6 @@ export default function Home() {
     void runCmdStream();
   }
 
-  // ---------- sandbox
   async function openSandboxFile(file: string) {
     setOpenFile(file);
     setFileContent("…loading");
@@ -79,7 +77,7 @@ export default function Home() {
     setFileContent(j.content ?? "");
   }
 
-  // ---------- gemini (SSE + auto-continue)
+
   async function askLLMStream() {
     if (!prompt.trim() || asking) return;
     setAsking(true);
@@ -120,16 +118,17 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#0A0F1A] to-black text-white overflow-hidden">
-      {/* NAVBAR */}
+
       <header className="sticky top-0 z-20 border-b border-white/10 bg-black/50 backdrop-blur">
         <div className="mx-auto max-w-[1800px] px-6 py-4 flex items-center justify-between">
-          {/* Logo */}
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold">bolt</span>
-            <span className="text-lg font-normal text-white/70">.new</span>
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+              <span className="text-xl font-bold text-white">❯❯❯❯</span>
+            </div>
+            <span className="text-2xl font-bold tracking-tight">Doable</span>
           </div>
 
-          {/* Navigation Links */}
+     
           <nav className="hidden md:flex items-center gap-8 text-sm text-white/80">
             <a href="#" className="hover:text-white transition">Community</a>
             <a href="#" className="hover:text-white transition">Enterprise</a>
@@ -143,7 +142,6 @@ export default function Home() {
             <a href="#" className="hover:text-white transition">Pricing</a>
           </nav>
 
-          {/* Social Icons + Buttons */}
           <div className="hidden md:flex items-center gap-4">
             <div className="flex items-center gap-3">
               <a href="#" className="hover:opacity-70 transition">
@@ -174,9 +172,9 @@ export default function Home() {
         </div>
       </header>
 
-      {/* MAIN CONTENT */}
+   
       <div className="relative min-h-[calc(100vh-4rem)]">
-        {/* Background Curved Lines */}
+
         <div className="absolute bottom-0 left-0 right-0 pointer-events-none overflow-hidden" style={{ height: '400px' }}>
           <svg className="absolute bottom-0" width="100%" height="400px" viewBox="0 0 1920 400" preserveAspectRatio="none">
             <path d="M0,250 Q480,100 960,150 T1920,200" stroke="#3B82F6" strokeWidth="2" fill="none" opacity="0.8" className="blur-sm" />
@@ -185,28 +183,28 @@ export default function Home() {
         </div>
 
         <div className="relative max-w-6xl mx-auto px-6 pt-16 text-center">
-          {/* Announcement Banner */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-8 rounded-full border border-white/20 bg-white/5">
+ 
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-8 rounded-full border border-white/20 bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur">
             <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
               <path d="M13 10h5l-1.5 2-1.5-2z" />
             </svg>
-            <span className="text-sm text-white/90">Introducing Bolt V2</span>
+            <span className="text-sm font-medium bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Create anything with AI</span>
           </div>
 
-          {/* Main Headline */}
+      
           <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-6">
             What will you <span className="text-blue-500">build</span> today?
           </h1>
 
-          {/* Sub-headline */}
+         
           <p className="text-xl text-white/70 mb-12 max-w-2xl mx-auto">
             Create stunning apps & websites by chatting with AI.
           </p>
 
-          {/* Input Card */}
+    
           <div className="relative max-w-4xl mx-auto mb-8">
             <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/20 p-6 shadow-2xl">
-              {/* Input Field */}
+              
               <textarea
                 ref={inputRef}
                 value={prompt}
@@ -217,16 +215,14 @@ export default function Home() {
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
 
-              {/* Bottom Controls */}
               <div className="flex items-center justify-between mt-4">
-                {/* Left: Add Button */}
+             
                 <button className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                 </button>
 
-                {/* Right: Plan and Build Buttons */}
                 <div className="flex items-center gap-3">
                   <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-white/60 hover:bg-white/10 transition">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,8 +248,6 @@ export default function Home() {
               </div>
             </div>
           </div>
-
-          {/* Import Options */}
           <div className="flex items-center justify-center gap-6">
             <span className="text-sm text-white/60">or import from</span>
             <div className="flex gap-3">
@@ -274,12 +268,11 @@ export default function Home() {
         </div>
       </div>
 
-      {/* WORKBENCH SECTION - Hidden until user builds */}
       {answer && (
         <section className="mx-auto max-w-7xl px-6 py-10 grid gap-6">
           <h2 className="text-xl font-bold">Workbench</h2>
 
-          {/* tabs */}
+      
           <div className="flex gap-2">
             {(["editor", "preview", "terminal"] as Tab[]).map((t) => (
               <button
@@ -297,7 +290,7 @@ export default function Home() {
           </div>
 
           <div className="grid lg:grid-cols-[18rem,1fr] gap-4">
-            {/* sidebar */}
+        
             <aside className="rounded-2xl border border-white/20 bg-white/10 p-3">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-base font-semibold">Files</h3>
@@ -309,9 +302,7 @@ export default function Home() {
                 </button>
               </div>
               <FilesSidebar selected={openFile} onOpen={openSandboxFile} />
-            </aside>
-
-            {/* main pane */}
+            </aside>  
             <section className="grid gap-4">
               {tab === "editor" && (
                 <div className="rounded-2xl border border-white/20 bg-white/10">
@@ -389,7 +380,7 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Chat / Answer */}
+             
               <div className="rounded-2xl border border-white/20 bg-white/10">
                 <div className="px-4 py-3 border-b border-white/20 flex items-center justify-between">
                   <h3 className="text-base font-semibold">Response</h3>
