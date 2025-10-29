@@ -6,7 +6,6 @@ import { authMiddleware } from "./auth";
 const router = Router();
 router.use(authMiddleware);
 
-
 const CreateProject = z.object({
   title: z.string().min(1),
   initialPrompt: z.string().min(1),

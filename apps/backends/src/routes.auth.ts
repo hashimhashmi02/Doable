@@ -4,7 +4,6 @@ import { prisma } from "./db";
 import { signToken, hash, compare } from "./auth";
 
 const router = Router();
-
 const Creds = z.object({
   username: z.string().min(3).max(40),
   password: z.string().min(6).max(200),

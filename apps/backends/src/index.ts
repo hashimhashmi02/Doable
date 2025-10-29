@@ -22,10 +22,10 @@ function sseWrite(res: express.Response, event: string, data: string) {
 const ShellBody = z.object({ cmd: z.string().min(1) });
 const ALLOWED = new Set(["node -v", "npm -v", "pnpm -v", "echo hello"]);
 
+
 app.get("/api/health", (_req, res) =>
   res.json({ ok: true, service: "backend", ts: new Date().toISOString() })
 );
-
 app.use("/api", authRoutes);
 app.use("/api", projectRoutes);
 
@@ -107,7 +107,6 @@ app.post("/project/conversation/:projectId", authMiddleware, async (req, res) =>
   try {
     const { projectId } = Params.parse(req.params);
     const { type, from, contents, hidden, toolCall } = Body.parse(req.body);
-    // basic ownership check
     const own = await prisma.project.findFirst({ where: { id: projectId, userId: (req as any).uid } });
     if (!own) return res.status(404).json({ error: "project not found" });
     const rec = await prisma.conversationHistory.create({
