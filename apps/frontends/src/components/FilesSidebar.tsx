@@ -35,7 +35,7 @@ export default function FilesSidebar({ selected, onOpen }: Props) {
         </button>
       </div>
       <ul className="text-sm grid gap-1">
-        {files.length === 0 && <li className="text-white/50">No files</li>}
+        {files.length === 0 && <li className="text-white/50">No files here</li>}
         {files.map(f => (
           <li key={f}>
             <button

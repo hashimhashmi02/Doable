@@ -8,7 +8,6 @@ const Creds = z.object({
   username: z.string().min(3).max(40),
   password: z.string().min(6).max(200),
 });
-
 router.post("/signup", async (req, res) => {
   try {
     const { username, password } = Creds.parse(req.body);
@@ -17,7 +16,7 @@ router.post("/signup", async (req, res) => {
 
     const pwHash = await hash(password);
     const user = await prisma.user.create({ data: { username, password: pwHash } });
-
+    
     const token = signToken(user.id);
     res.json({ ok: true, token, user: { id: user.id, username: user.username } });
   } catch (e: any) {
