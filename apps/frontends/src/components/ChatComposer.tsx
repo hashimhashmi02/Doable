@@ -42,7 +42,7 @@ export default function ChatComposer({
           className={`px-5 py-2 rounded-lg font-semibold text-sm transition ${
             disabled || !text.trim()
               ? "bg-blue-400/50 cursor-not-allowed"
-              : "bg-blue-600 hover:bg-blue-700"
+              : "bg-blue-600 hover:bg-blue-600"
           }`}
         >
           Send
