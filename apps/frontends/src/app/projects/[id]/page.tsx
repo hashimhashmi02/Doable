@@ -126,14 +126,12 @@ export default function ProjectPage() {
           <a
             href="/projects"
             className="text-sm text-white/70 hover:text-white transition"
-          >
-            ← All projects
+          > ← All projects
           </a>
         </div>
       </header>
 
       <section className="mx-auto max-w-7xl px-6 py-6 grid lg:grid-cols-[18rem,1fr] gap-4">
-        {/* Sidebar */}
         <aside className="rounded-2xl border border-white/20 bg-white/10 p-3">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-base font-semibold">Files</h3>
@@ -146,8 +144,6 @@ export default function ProjectPage() {
           </div>
           <FilesSidebar selected={""} onOpen={() => {}} />
         </aside>
-
-        {/* Chat & Stream */}
         <div className="grid gap-4">
           <div
             ref={streamRef}
@@ -174,8 +170,7 @@ export default function ProjectPage() {
               ))}
             </ul>
           </div>
-
-          {/* Composer */}
+          
           <div className="rounded-2xl border border-white/20 bg-white/10 p-3">
             <textarea
               rows={3}
