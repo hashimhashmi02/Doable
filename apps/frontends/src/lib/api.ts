@@ -22,3 +22,33 @@ export async function j<T>(r: Response): Promise<T> {
   }
   return (await r.json()) as T;
 }
+
+export function previewUrl() {
+  return `${API}/preview?v=${Date.now()}`;
+}
+
+export async function renameProject(projectId: string, title: string) {
+  const r = await fetch(`${API}/api/project/${projectId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ title }),
+  });
+  return j<{ ok: boolean; project: any }>(r);
+}
+
+export async function deleteProject(projectId: string) {
+  const r = await fetch(`${API}/api/project/${projectId}`, {
+    method: "DELETE",
+    headers: { ...authHeaders() },
+  });
+  return j<{ ok: boolean }>(r);
+}
+
+export async function hideMessage(messageId: string, hidden: boolean) {
+  const r = await fetch(`${API}/api/message/${messageId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ hidden }),
+  });
+  return j<{ ok: boolean; message: any }>(r);
+}
