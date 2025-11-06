@@ -10,23 +10,21 @@ const API = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace
 const SSE_PATH = process.env.NEXT_PUBLIC_SSE_PATH ?? "/api/llm/chat/stream"; // or "/sse/llm/stream"
 
 export default function Home() {
-  // ---------- health
+
   const [health, setHealth] = useState("checking…");
 
-  // ---------- tabs
+
   const [tab, setTab] = useState<Tab>("editor");
 
-  // ---------- terminal
+ 
   const [cmd, setCmd] = useState("node -v");
   const [cmdOut, setCmdOut] = useState("");
   const termOutRef = useRef<HTMLPreElement | null>(null);
   const [termStreaming, setTermStreaming] = useState(false);
 
-  // ---------- editor / sandbox
   const [openFile, setOpenFile] = useState("");
   const [fileContent, setFileContent] = useState("");
 
-  // ---------- preview
   const [previewSrc, setPreviewSrc] = useState<string>(`${API}/preview`);
   const refreshPreview = () => setPreviewSrc(`${API}/preview?v=${Date.now()}`);
   const seedIndexHtml = async () => {
@@ -65,14 +63,12 @@ export default function Home() {
     refreshPreview();
   };
 
-  // ---------- LLM (SSE)
   const [prompt, setPrompt] = useState("");
   const [answer, setAnswer] = useState("");
   const [asking, setAsking] = useState(false);
   const ansRef = useRef<HTMLPreElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // ---------- health check
   useEffect(() => {
     fetch(`${API}/api/health`)
       .then((r) => r.json())
@@ -80,7 +76,6 @@ export default function Home() {
       .catch((err) => setHealth(String(err)));
   }, []);
 
-  // ---------- terminal run (SSE)
   function runCmdStream() {
     if (!cmd.trim()) return;
     setTermStreaming(true);
@@ -107,7 +102,6 @@ export default function Home() {
     };
   }
 
-  // ---------- open sandbox file
   async function openSandboxFile(file: string) {
     setOpenFile(file);
     setFileContent("…loading");
@@ -120,7 +114,6 @@ export default function Home() {
     setFileContent(j.content ?? "");
   }
 
-  // ---------- LLM stream
   function askLLMStream() {
     if (!prompt.trim() || asking) return;
     setAsking(true);
@@ -166,7 +159,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#0A0F1A] to-black text-white">
-      {/* NAV */}
+
       <header className="sticky top-0 z-20 border-b border-white/10 bg-black/60 backdrop-blur">
         <div className="mx-auto max-w-[1200px] px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -179,8 +172,6 @@ export default function Home() {
           </div>
         </div>
       </header>
-
-      {/* HERO */}
       <section className="relative mx-auto max-w-[1200px] px-6 pt-14 pb-10 text-center">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-8 rounded-full border border-white/20 bg-white/10">
           <span className="text-sm">Create anything with AI</span>
@@ -213,12 +204,8 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* WORKBENCH */}
       <section className="mx-auto max-w-[1200px] px-6 pb-16 grid gap-6">
         <h2 className="text-xl font-semibold">Workbench</h2>
-
-        {/* tabs */}
         <div className="flex gap-2">
           {(["editor", "preview", "terminal"] as Tab[]).map((t) => (
             <button
@@ -234,7 +221,6 @@ export default function Home() {
         </div>
 
         <div className="grid lg:grid-cols-[18rem,1fr] gap-4">
-          {/* sidebar */}
           <aside className="rounded-xl border border-white/20 bg-white/10 p-3">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-base font-semibold">Files</h3>
@@ -247,10 +233,7 @@ export default function Home() {
             </div>
             <FilesSidebar selected={openFile} onOpen={openSandboxFile} />
           </aside>
-
-          {/* main pane */}
           <section className="grid gap-4">
-            {/* EDITOR */}
             {tab === "editor" && (
               <div className="rounded-xl border border-white/20 bg-white/10">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-white/20">
@@ -279,7 +262,7 @@ export default function Home() {
               </div>
             )}
 
-            {/* PREVIEW */}
+      
             {tab === "preview" && (
               <div className="rounded-xl border border-white/20 bg-white/10">
                 <div className="px-4 py-3 border-b border-white/20 flex items-center justify-between">
@@ -301,8 +284,6 @@ export default function Home() {
                 />
               </div>
             )}
-
-            {/* TERMINAL */}
             {tab === "terminal" && (
               <div className="rounded-xl border border-white/20 bg-white/10 grid gap-3">
                 <div className="px-4 py-3 border-b border-white/20">
@@ -340,7 +321,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* LLM RESPONSE */}
             <div className="rounded-xl border border-white/20 bg-white/10">
               <div className="px-4 py-3 border-b border-white/20 flex items-center justify-between">
                 <h3 className="text-base font-semibold">Response</h3>

@@ -21,18 +21,10 @@ function sseWrite(res: express.Response, event: string, data: string) {
 
 const ShellBody = z.object({ cmd: z.string().min(1) });
 const ALLOWED = new Set(["node -v", "npm -v", "pnpm -v", "echo hello"]);
-
-/* -----------------------------------------------------------
-   PUBLIC: health
------------------------------------------------------------ */
 app.get("/api/health", (_req, res) =>
   res.json({ ok: true, service: "backend", ts: new Date().toISOString() })
 );
 
-/* -----------------------------------------------------------
-   PUBLIC: SSE LLM STREAMS  (must be BEFORE any /api routers)
-   EventSource cannot send Authorization, so keep these public.
------------------------------------------------------------ */
 app.get("/sse/llm/stream", async (req, res) => {
   const schema = z.object({
     prompt: z.string().min(1),
@@ -84,7 +76,6 @@ app.get("/sse/llm/stream", async (req, res) => {
   }
 });
 
-// Same stream on /api for convenience (still BEFORE auth routers)
 app.get("/api/llm/chat/stream", async (req, res) => {
   const schema = z.object({
     prompt: z.string().min(1),
@@ -135,15 +126,11 @@ app.get("/api/llm/chat/stream", async (req, res) => {
   }
 });
 
-/* -----------------------------------------------------------
-   AUTH + PROJECT ROUTERS (mounted AFTER public SSE routes)
------------------------------------------------------------ */
+
 app.use("/api", authRoutes);
 app.use("/api", projectRoutes);
 
-/* -----------------------------------------------------------
-   LLM chat (non-stream)
------------------------------------------------------------ */
+
 const ChatBody = z.object({
   prompt: z.string().min(1),
   temperature: z.number().min(0).max(2).optional(),
@@ -163,9 +150,6 @@ app.post("/api/llm/chat", async (req, res) => {
   }
 });
 
-/* -----------------------------------------------------------
-   Auth endpoints (signup/signin)
------------------------------------------------------------ */
 app.post("/signup", async (req, res) => {
   const Body = z.object({ username: z.string().min(3), password: z.string().min(6) });
   try {
@@ -191,9 +175,7 @@ app.post("/signin", async (req, res) => {
   }
 });
 
-/* -----------------------------------------------------------
-   Project endpoints (auth-protected)
------------------------------------------------------------ */
+
 app.post("/project", authMiddleware, async (req, res) => {
   const Body = z.object({ title: z.string().min(1), initialPrompt: z.string().default("") });
   try {
@@ -250,9 +232,7 @@ app.post("/project/conversation/:projectId", authMiddleware, async (req, res) =>
   }
 });
 
-/* -----------------------------------------------------------
-   Sandbox + preview + shell
------------------------------------------------------------ */
+
 app.post("/api/tools/shell", async (req, res) => {
   try {
     const { cmd } = ShellBody.parse(req.body);
@@ -304,7 +284,6 @@ app.get("/api/tools/shell/stream", (req, res) => {
   });
 });
 
-// preview from sandbox
 function readTextSafe(fname: string) {
   try { return sb.read(fname); } catch { return null; }
 }
@@ -329,16 +308,12 @@ app.get("/preview/:file", (req, res) => {
   res.send(content);
 });
 
-/* -----------------------------------------------------------
-   Utility + admin
------------------------------------------------------------ */
+
 app.get("/api/dbcheck", async (_req, res) => {
   const users = await prisma.user.count();
   res.json({ ok: true, users });
 });
 
-/* -----------------------------------------------------------
-   Start server
------------------------------------------------------------ */
+
 const PORT = Number(env.PORT ?? 4000);
 app.listen(PORT, () => console.log(`backend listening on http://localhost:${PORT}`));
