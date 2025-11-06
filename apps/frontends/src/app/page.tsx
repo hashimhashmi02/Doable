@@ -7,7 +7,7 @@ import CodeEditor from "@/components/CodeEditor";
 type Tab = "editor" | "preview" | "terminal";
 
 const API = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/$/, "");
-const SSE_PATH = process.env.NEXT_PUBLIC_SSE_PATH ?? "/api/llm/chat/stream"; // or "/sse/llm/stream"
+const SSE_PATH = process.env.NEXT_PUBLIC_SSE_PATH ?? "/api/llm/chat/stream";
 
 export default function Home() {
 
