@@ -10,13 +10,8 @@ const API = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace
 const SSE_PATH = process.env.NEXT_PUBLIC_SSE_PATH ?? "/api/llm/chat/stream";
 
 export default function Home() {
-
   const [health, setHealth] = useState("checking…");
-
-
   const [tab, setTab] = useState<Tab>("editor");
-
- 
   const [cmd, setCmd] = useState("node -v");
   const [cmdOut, setCmdOut] = useState("");
   const termOutRef = useRef<HTMLPreElement | null>(null);
