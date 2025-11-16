@@ -11,7 +11,6 @@ export default function ChatComposer({
   placeholder?: string;
 }) {
   const [text, setText] = useState("");
-
   async function submit() {
     const t = text.trim();
     if (!t || disabled) return;

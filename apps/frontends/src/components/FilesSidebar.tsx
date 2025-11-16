@@ -5,11 +5,9 @@ type Props = {
   selected?: string;
   onOpen: (file: string) => void;
 };
-
 export default function FilesSidebar({ selected, onOpen }: Props) {
   const [files, setFiles] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-
   async function refresh() {
     setLoading(true);
     try {
@@ -20,9 +18,7 @@ export default function FilesSidebar({ selected, onOpen }: Props) {
       setLoading(false);
     }
   }
-
   useEffect(() => { refresh(); }, []);
-
   return (
     <aside className="w-64 border border-white/20 rounded-xl p-3 grid gap-2 bg-white/10">
       <div className="flex items-center justify-between">
