@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-
-// Type-only handles (no global `monaco`)
 type MonacoNS = typeof import("monaco-editor/esm/vs/editor/editor.api");
 type StandaloneCodeEditor =
   import("monaco-editor/esm/vs/editor/editor.api").editor.IStandaloneCodeEditor;
@@ -15,12 +13,9 @@ export default function CodeEditor({ value }: { value: string }) {
     let disposed = false;
 
     (async () => {
-      // 1) Load Monaco ESM API (no globals)
       const monaco: MonacoNS = await import(
         "monaco-editor/esm/vs/editor/editor.api"
       );
-
-      // 2) Route workers to *local* bundled files (no CDN, no CORS)
       (self as any).MonacoEnvironment = {
         getWorker(_: unknown, label: string) {
           if (label === "json") {
@@ -70,15 +65,11 @@ export default function CodeEditor({ value }: { value: string }) {
       };
 
       if (disposed || !containerRef.current) return;
-
-      // Optional: quiet “Canceled: Canceled” noise in dev
       const origError = console.error;
       console.error = (...args) => {
         if (String(args[0] ?? "").includes("Canceled")) return;
         origError(...(args as any));
       };
-
-      // 3) Create editor
       editorRef.current = monaco.editor.create(containerRef.current, {
         value: value || "// open a file from the sidebar",
         language: "typescript",
@@ -96,7 +87,6 @@ export default function CodeEditor({ value }: { value: string }) {
       } catch {}
     };
   }, [value]);
-
   return (
     <div
       ref={containerRef}
