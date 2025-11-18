@@ -1,14 +1,11 @@
-"use client";
-
+"use client";    
 import { useEffect, useRef, useState, KeyboardEvent } from "react";
 import FilesSidebar from "@/components/FilesSidebar";
 import CodeEditor from "@/components/CodeEditor";
 
 type Tab = "editor" | "preview" | "terminal";
-
 const API = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/$/, "");
 const SSE_PATH = process.env.NEXT_PUBLIC_SSE_PATH ?? "/api/llm/chat/stream";
-
 export default function Home() {
   const [health, setHealth] = useState("checking…");
   const [tab, setTab] = useState<Tab>("editor");
@@ -70,19 +67,15 @@ export default function Home() {
       .then((j) => setHealth(JSON.stringify(j, null, 2)))
       .catch((err) => setHealth(String(err)));
   }, []);
-
   function runCmdStream() {
     if (!cmd.trim()) return;
     setTermStreaming(true);
     setCmdOut("");
-
     const es = new EventSource(`${API}/api/tools/shell/stream?cmd=${encodeURIComponent(cmd)}`);
-
     const onChunk = (s: string) => {
       setCmdOut((prev) => (prev ? prev + s : s));
       termOutRef.current?.scrollTo({ top: termOutRef.current.scrollHeight, behavior: "smooth" });
     };
-
     es.addEventListener("stdout", (e) => onChunk((e as MessageEvent).data.replaceAll("\\n", "\n")));
     es.addEventListener("stderr", (e) => onChunk((e as MessageEvent).data.replaceAll("\\n", "\n")));
     es.addEventListener("done", (e) => {
@@ -96,7 +89,6 @@ export default function Home() {
       setTermStreaming(false);
     };
   }
-
   async function openSandboxFile(file: string) {
     setOpenFile(file);
     setFileContent("…loading");
@@ -108,53 +100,42 @@ export default function Home() {
     const j = await r.json();
     setFileContent(j.content ?? "");
   }
-
   function askLLMStream() {
     if (!prompt.trim() || asking) return;
     setAsking(true);
     setAnswer("");
-
     const url =
       `${API}${SSE_PATH.startsWith("/") ? "" : "/"}${SSE_PATH}` +
       `?${new URLSearchParams({ prompt, temperature: "0.6", maxOutputTokens: "2048" }).toString()}`;
-
     const es = new EventSource(url);
-
     es.addEventListener("token", (e) => {
       setAnswer((prev) => prev + (e as MessageEvent).data.replaceAll("\\n", "\n"));
       ansRef.current?.scrollTo({ top: ansRef.current.scrollHeight });
     });
-
     es.addEventListener("server-error", (e) => {
       const msg = (e as MessageEvent).data || "unknown error";
       setAnswer((prev) => prev + `\n\n[server error] ${msg}`);
     });
-
     es.addEventListener("done", () => {
       es.close();
       setAsking(false);
     });
-
     es.onerror = () => {
       setAnswer((prev) => prev + "\n\n[stream error]");
       es.close();
       setAsking(false);
     };
-
     setPrompt("");
     inputRef.current?.focus();
   }
-
   function onPromptKey(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       askLLMStream();
     }
   }
-
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#0A0F1A] to-black text-white">
-
       <header className="sticky top-0 z-20 border-b border-white/10 bg-black/60 backdrop-blur">
         <div className="mx-auto max-w-[1200px] px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -175,7 +156,6 @@ export default function Home() {
           What will you <span className="text-blue-500">build</span> today?
         </h1>
         <p className="text-lg text-white/70 mb-8">Create stunning apps & websites by chatting with AI.</p>
-
         <div className="max-w-3xl mx-auto bg-white/5 rounded-2xl border border-white/20 p-5">
           <textarea
             ref={inputRef}
@@ -214,7 +194,6 @@ export default function Home() {
             </button>
           ))}
         </div>
-
         <div className="grid lg:grid-cols-[18rem,1fr] gap-4">
           <aside className="rounded-xl border border-white/20 bg-white/10 p-3">
             <div className="flex items-center justify-between mb-2">
@@ -256,8 +235,6 @@ export default function Home() {
                 </div>
               </div>
             )}
-
-      
             {tab === "preview" && (
               <div className="rounded-xl border border-white/20 bg-white/10">
                 <div className="px-4 py-3 border-b border-white/20 flex items-center justify-between">

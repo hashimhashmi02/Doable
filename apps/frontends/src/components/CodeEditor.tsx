@@ -1,9 +1,8 @@
 "use client";
-
 import { useEffect, useRef } from "react";
 type MonacoNS = typeof import("monaco-editor/esm/vs/editor/editor.api");
 type StandaloneCodeEditor =
-  import("monaco-editor/esm/vs/editor/editor.api").editor.IStandaloneCodeEditor;
+import("monaco-editor/esm/vs/editor/editor.api").editor.IStandaloneCodeEditor;
 
 export default function CodeEditor({ value }: { value: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -11,7 +10,6 @@ export default function CodeEditor({ value }: { value: string }) {
 
   useEffect(() => {
     let disposed = false;
-
     (async () => {
       const monaco: MonacoNS = await import(
         "monaco-editor/esm/vs/editor/editor.api"
